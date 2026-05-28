@@ -28,7 +28,7 @@ def add_student():
 def view_students():
     print("\n--- Student List ---")
 
-    if len(students) == 0:
+    if len(students) == 0: 
         print("No students found.\n")
         return
 
