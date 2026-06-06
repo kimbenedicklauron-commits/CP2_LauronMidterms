@@ -9,7 +9,6 @@ def add_student():
     show_add_form()
     new_student = get_student_input()
 
-    # Check if student ID already exists
     for student in get_all_students():
         if student[0].lower() == new_student[0].lower():
             show_error("Student ID already exists!")
@@ -51,7 +50,6 @@ def update_student():
     students = get_all_students()
     found_index = -1
 
-    # Find student by name
     for i, student in enumerate(students):
         if student[1].lower() == name.lower():
             found_index = i
@@ -61,11 +59,9 @@ def update_student():
         show_student_not_found()
         return
 
-    # Show current information
     print("\nCurrent Student Information:")
     show_student_details(students[found_index])
 
-    # Get what to update
     choice = get_update_choice()
 
     current_student = students[found_index]
@@ -153,6 +149,5 @@ def main():
             show_error("Invalid choice! Please enter 1-6.")
 
 
-# Run the program
 if __name__ == "__main__":
     main()
