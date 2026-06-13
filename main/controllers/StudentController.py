@@ -1,5 +1,4 @@
 # Student Information System - Controller
-# Kim Benedick Lauron
 
 from StudentModel import *
 from StudentView import *
@@ -7,102 +6,203 @@ from StudentView import *
 
 def add_student():
     show_add_form()
-    new_student = get_student_input()
 
-    # Check if student ID already exists
-    for student in get_all_students():
-        if student[0].lower() == new_student[0].lower():
-            show_error("Student ID already exists!")
-            return
+    student_id = input("Enter Student ID (5-6 digits): ")
 
-    add_student_to_list(new_student)
-    show_success("Student added successfully!")
+    if not validate_student_id(student_id):
+        show_error("Student ID must be 5-6 digits long!")
+        return
 
+    if check_student_id_exists(student_id):
+        show_error("Student ID already exists!")
+        return
 
-def view_all_students():
-    students = get_all_students()
-    show_student_list(students)
+    name = input("Enter Student Name (First and Last): ")
+
+    if not validate_name(name):
+        show_error("Name must include both first and last name!")
+        return
+
+    birth_date = input("Enter Birth Date (DD/MM/YYYY): ")
+    course = input("Enter Course: ")
+
+    new_student = [student_id, name, birth_date, course]
+
+    if add_student_to_list(new_student):
+        show_success("Student added successfully!")
+    else:
+        show_error("Failed to add student!")
 
 
 def search_student():
+    if get_student_count() == 0:
+        show_no_students()
+        return
+
     show_search_form()
-    name = get_search_name()
+    choice = get_search_choice()
 
-    students = get_all_students()
-    found_students = []
+    if choice == '1':
+        name = get_search_name()
+        students = search_student_by_name(name)
 
-    for student in students:
-        if name.lower() in student[1].lower():
-            found_students.append(student)
+        if students:
+            show_student_list(students)
+        else:
+            show_student_not_found()
 
-    if found_students:
-        print(f"\nFound {len(found_students)} student(s):")
-        for student in found_students:
+    elif choice == '2':
+        student_id = get_search_id()
+        student = find_student_by_id(student_id)
+
+        if student:
+            print("\n--- Student Found ---")
             show_student_details(student)
-        print()
+            print()
+        else:
+            show_student_not_found()
+
     else:
-        show_student_not_found()
+        show_error("Invalid choice!")
 
 
 def update_student():
+    if get_student_count() == 0:
+        show_no_students()
+        return
+
     show_update_form()
-    name = get_search_name()
 
-    students = get_all_students()
-    found_index = -1
+    print("\nSearch student to update:")
+    search_choice = get_search_choice()
 
-    # Find student by name
-    for i, student in enumerate(students):
-        if student[1].lower() == name.lower():
-            found_index = i
-            break
+    found_student = None
+    original_id = None
 
-    if found_index == -1:
+    if search_choice == '1':
+        name = get_search_name()
+        found_student = find_student_by_name(name)
+        if found_student:
+            original_id = found_student[0]
+
+    elif search_choice == '2':
+        student_id = get_search_id()
+        found_student = find_student_by_id(student_id)
+        if found_student:
+            original_id = found_student[0]
+
+    else:
+        show_error("Invalid choice!")
+        return
+
+    if not found_student:
         show_student_not_found()
         return
 
-    # Show current information
     print("\nCurrent Student Information:")
-    show_student_details(students[found_index])
+    show_student_details(found_student)
 
-    # Get what to update
-    choice = get_update_choice()
+    option = get_update_option()
 
-    current_student = students[found_index]
-    updated_student = current_student.copy()
+    updated_student = found_student.copy()
 
-    if choice == '1':
-        new_id = get_updated_field("Student ID")
-        updated_student[0] = new_id
-        update_student_in_list(found_index, updated_student)
-        show_success("Student ID updated successfully!")
+    if option == '1':
+        field_choice = get_update_choice()
 
-    elif choice == '2':
-        new_name = get_updated_field("Name")
-        updated_student[1] = new_name
-        update_student_in_list(found_index, updated_student)
-        show_success("Student name updated successfully!")
+        if field_choice == '1':
+            new_id = get_updated_field("Student ID")
 
-    elif choice == '3':
-        new_birth = get_updated_field("Birth Date (DD/MM/YYYY)")
-        updated_student[2] = new_birth
-        update_student_in_list(found_index, updated_student)
-        show_success("Birth date updated successfully!")
+            if not validate_student_id(new_id):
+                show_error("Student ID must be 5-6 digits long!")
+                return
 
-    elif choice == '4':
-        new_course = get_updated_field("Course")
-        updated_student[3] = new_course
-        update_student_in_list(found_index, updated_student)
-        show_success("Course updated successfully!")
+            if new_id != original_id and check_student_id_exists(new_id):
+                show_error("Student ID already belongs to another student!")
+                return
 
-    elif choice == '5':
+            updated_student[0] = new_id
+
+        elif field_choice == '2':
+            new_name = get_updated_field("Name")
+
+            if not validate_name(new_name):
+                show_error("Name must include both first and last name!")
+                return
+
+            updated_student[1] = new_name
+
+        elif field_choice == '3':
+            new_birth = get_updated_field("Birth Date (DD/MM/YYYY)")
+            updated_student[2] = new_birth
+
+        elif field_choice == '4':
+            new_course = get_updated_field("Course")
+            updated_student[3] = new_course
+
+        else:
+            show_error("Invalid choice! No changes made.")
+            return
+
+        update_student_by_index(original_id, updated_student)
+        show_success("Student information updated successfully!")
+
+    elif option == '2':
+        print("\n--- Enter Updated Information (leave blank to keep current) ---")
+
+        # Update ID
+        new_id = input(f"Enter new Student ID (current: {updated_student[0]}): ")
+        if new_id:
+            if not validate_student_id(new_id):
+                show_error("Student ID must be 5-6 digits long!")
+                return
+
+            if new_id != original_id and check_student_id_exists(new_id):
+                show_error("Student ID already belongs to another student!")
+                return
+
+            updated_student[0] = new_id
+
+        new_name = input(f"Enter new Name (current: {updated_student[1]}): ")
+        if new_name:
+            if not validate_name(new_name):
+                show_error("Name must include both first and last name!")
+                return
+
+            updated_student[1] = new_name
+
+        new_birth = input(f"Enter new Birth Date (current: {updated_student[2]}): ")
+        if new_birth:
+            updated_student[2] = new_birth
+
+        new_course = input(f"Enter new Course (current: {updated_student[3]}): ")
+        if new_course:
+            updated_student[3] = new_course
+
+        update_student_by_index(original_id, updated_student)
+        show_success("Student information updated successfully!")
+
+    elif option == '3':
         print("\n--- Enter Updated Information ---")
+
         new_id = input("Enter new Student ID: ")
+        if not validate_student_id(new_id):
+            show_error("Student ID must be 5-6 digits long!")
+            return
+
+        if new_id != original_id and check_student_id_exists(new_id):
+            show_error("Student ID already belongs to another student!")
+            return
+
         new_name = input("Enter new Student Name: ")
+        if not validate_name(new_name):
+            show_error("Name must include both first and last name!")
+            return
+
         new_birth = input("Enter new Birth Date (DD/MM/YYYY): ")
         new_course = input("Enter new Course: ")
+
         updated_student = [new_id, new_name, new_birth, new_course]
-        update_student_in_list(found_index, updated_student)
+        update_student_by_index(original_id, updated_student)
         show_success("All student information updated successfully!")
 
     else:
@@ -110,26 +210,52 @@ def update_student():
 
 
 def delete_student():
+    if get_student_count() == 0:
+        show_no_students()
+        return
+
     show_delete_form()
-    name = get_search_name()
 
-    students = get_all_students()
+    choice = get_delete_choice()
 
-    for student in students:
-        if student[1].lower() == name.lower():
-            delete_student_from_list(student)
-            show_success("Student deleted successfully!")
-            return
+    if choice == '1':  # Delete by name
+        name = get_search_name()
 
-    show_student_not_found()
+        print(f"\nAre you sure you want to delete student '{name}'?")
+        confirm = input("Type 'YES' to confirm: ")
+
+        if confirm == 'YES':
+            if delete_student_from_list(name, 'name'):
+                show_success("Student deleted successfully!")
+            else:
+                show_student_not_found()
+        else:
+            show_message("Deletion cancelled.\n")
+
+    elif choice == '2':
+        student_id = get_search_id()
+
+        # Confirm deletion
+        print(f"\nAre you sure you want to delete student with ID '{student_id}'?")
+        confirm = input("Type 'YES' to confirm: ")
+
+        if confirm == 'YES':
+            if delete_student_from_list(student_id, 'id'):
+                show_success("Student deleted successfully!")
+            else:
+                show_student_not_found()
+        else:
+            show_message("Deletion cancelled.\n")
+
+    else:
+        show_error("Invalid choice!")
 
 
 def main():
     while True:
         show_menu()
-        choice = input("Enter your choice (1-6): ")
+        choice = input("Enter your choice (1-5): ")
 
-        # Input validation
         if not choice.isdigit():
             show_error("Please enter a number!")
             continue
@@ -139,20 +265,13 @@ def main():
         if choice == 1:
             add_student()
         elif choice == 2:
-            view_all_students()
-        elif choice == 3:
             search_student()
-        elif choice == 4:
+        elif choice == 3:
             update_student()
-        elif choice == 5:
+        elif choice == 4:
             delete_student()
-        elif choice == 6:
+        elif choice == 5:
             show_message("\nExiting program... Goodbye!")
             break
         else:
-            show_error("Invalid choice! Please enter 1-6.")
-
-
-# Run the program
-if __name__ == "__main__":
-    main()
+            show_error("Invalid choice! Please enter 1-5.")
